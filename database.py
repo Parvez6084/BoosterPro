@@ -21,8 +21,9 @@ class DatabaseManager:
             """
 
         # Define the query
-        self.insert_query = """INSERT INTO Task (UserId, Title, Summary, Published, Link) VALUES (?, ?, ?, ?, ?)"""
-        self.check_query = """SELECT * FROM Task WHERE UserId = ? AND Title = ? AND Published = ? AND Link = ? """
+        self.insert_query = """INSERT INTO Task_Information (UserId, Title, Summary, Published, Link) VALUES (?, ?, ?, ?, ?)"""
+        self.check_query = """SELECT * FROM Task_Information WHERE UserId = ? AND Title = ? AND Published = ? AND Link = ? """
+        self.subscription_query = """SELECT * FROM User_Information WHERE UserId = ? and IsSubscribed = 1"""
 
     # Define a method to get a connection
     def get_connection(self):
@@ -46,6 +47,20 @@ class DatabaseManager:
                                (user_id, response['title'], response['summary'], formatted_dt, response['link']))
                 conn.commit()
 
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            raise e
+        finally:
+            if conn is not None:
+                conn.close()
+
+    async def getSubscriptionInfo(self, user_id):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(self.subscription_query, user_id)
+            data = cursor.fetchone()
+            return data
         except Exception as e:
             print(f"An error occurred: {e}")
             raise e

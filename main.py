@@ -35,3 +35,6 @@ async def main(task: TaskIModel):
     #     await send_email("rozarioux@gmail.com", item)
 
     return {str(response)}
+
+async def subscriptionInfo(userId: str):
+    return await dbContext.get_subscription_info(userId)
