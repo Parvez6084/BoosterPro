@@ -21,31 +21,57 @@ class DatabaseManager:
             """
 
         # Define the query
-        self.insert_query = """INSERT INTO Task_Information (UserId, Title, Summary, Published, Link) VALUES (?, ?, ?, ?, ?)"""
+        self.insert_url_query = """UPDATE User_Information SET (URL) VALUE (?) WHERE UserId =?"""
+        self.get_task_query = """SELECT * FROM Task_Information WHERE UserId = ? AND IsSendEmail = 0"""
+        self.insert_task_query = """INSERT INTO Task_Information (UserId, Title, Summary, Published, Link) VALUES (?, ?, ?, ?, ?)"""
+        self.update_task_query = """UPDATE Task_Information SET IsSendEmail = 1 WHERE Id = ? AND UserId = ?"""
         self.check_query = """SELECT * FROM Task_Information WHERE UserId = ? AND Title = ? AND Published = ? AND Link = ? """
-        self.subscription_query = """SELECT * FROM User_Information WHERE UserId = ? and IsSubscribed = 1"""
+        self.subscription_query = """SELECT ui.IsSubscribed, si.SubscribedStartDate, ui.URL FROM User_Information as ui
+                INNER JOIN Subscribed_Information as si on ui.UserId = si.UserId WHERE UserId = ?"""
+        self.user_query = """SELECT * FROM User_Information WHERE UserId = ?"""
 
     # Define a method to get a connection
     def get_connection(self):
         return odbc.connect(self.connecting_string)
 
-    # Define a method to insert a task
-    async def insert_task(self, user_id, response):
+    # Define a method to curd operation
+    async def insert_url(self, user_id, url):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(self.insert_url_query, (url, user_id))
+            conn.commit()
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            raise e
+        finally:
+            if conn is not None:
+                conn.close()
+
+    async def insert_task(self, user_id, activeDate, response):
         conn = self.get_connection()
         try:
             cursor = conn.cursor()
             dt = datetime.strptime(response['published'], '%a, %d %b %Y %H:%M:%S %z')
-            formatted_dt = dt.strftime('%Y-%m-%d %H:%M:%S')
+            published = dt.strftime('%Y-%m-%d %H:%M:%S')
 
             # Check if the data already exists
-            cursor.execute(self.check_query, (user_id, response['title'], formatted_dt, response['link']))
+            cursor.execute(self.check_query, (user_id, response['title'], published, response['link']))
             data = cursor.fetchone()
 
             # If the data does not exist, insert it
-            if data is None:
-                cursor.execute(self.insert_query,
-                               (user_id, response['title'], response['summary'], formatted_dt, response['link']))
-                conn.commit()
+            if published >= activeDate:
+                if data is None:
+                    cursor.execute(
+                        self.insert_task_query, (
+                            user_id,
+                            response['title'],
+                            response['summary'],
+                            published,
+                            response['link']
+                        )
+                    )
+                    conn.commit()
 
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -54,12 +80,53 @@ class DatabaseManager:
             if conn is not None:
                 conn.close()
 
-    async def getSubscriptionInfo(self, user_id):
+    async def update_task(self, task_id, user_id):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(self.update_task_query, task_id, user_id)
+            conn.commit()
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            raise e
+        finally:
+            if conn is not None:
+                conn.close()
+
+    async def get_subscription_info(self, user_id):
         conn = self.get_connection()
         try:
             cursor = conn.cursor()
             cursor.execute(self.subscription_query, user_id)
             data = cursor.fetchone()
+            return data
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            raise e
+        finally:
+            if conn is not None:
+                conn.close()
+
+    async def get_user_info(self, user_id):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(self.user_query, user_id)
+            data = cursor.fetchone()
+            return data
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            raise e
+        finally:
+            if conn is not None:
+                conn.close()
+
+    async def get_all_tasks(self, user_id):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(self.get_task_query, user_id)
+            data = cursor.fetchall()
             return data
         except Exception as e:
             print(f"An error occurred: {e}")
