@@ -48,26 +48,26 @@ class DatabaseManager:
             if conn is not None:
                 conn.close()
 
-    async def insert_task(self, user_id, activeDate, response):
+    async def insert_task(self, user_id, active_date, response):
         conn = self.get_connection()
         try:
             cursor = conn.cursor()
             dt = datetime.strptime(response['published'], '%a, %d %b %Y %H:%M:%S %z')
-            published = dt.strftime('%Y-%m-%d %H:%M:%S')
+            published_date = dt.strftime('%Y-%m-%d %H:%M:%S')
 
             # Check if the data already exists
-            cursor.execute(self.check_query, (user_id, response['title'], published, response['link']))
+            cursor.execute(self.check_query, (user_id, response['title'], published_date, response['link']))
             data = cursor.fetchone()
 
             # If the data does not exist, insert it
-            if published >= activeDate:
+            if published_date >= active_date:
                 if data is None:
                     cursor.execute(
                         self.insert_task_query, (
                             user_id,
                             response['title'],
                             response['summary'],
-                            published,
+                            published_date,
                             response['link']
                         )
                     )

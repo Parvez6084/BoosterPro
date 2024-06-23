@@ -22,8 +22,8 @@ async def set_url(task: TaskModel):
         return {'status': 'ok'}
 
 
-async def set_task_worker(userId: str):
-    result = await dbContext.get_subscription_info(userId)
+async def set_task_worker(user_id: str):
+    result = await dbContext.get_subscription_info(user_id)
     if result['IsSubscribed'] == 1:
         feed = feedparser.parse(result['URL'])
         response = [
@@ -41,13 +41,13 @@ async def set_task_worker(userId: str):
             # Insert the task into the database
             if response:
                 for item in response:
-                    await dbContext.insert_task(userId, active_date, item)
+                    await dbContext.insert_task(user_id, active_date, item)
 
 
-async def send_email_worker(userId: str):
-    response = await dbContext.get_all_tasks(userId)
+async def send_email_worker(user_id: str):
+    response = await dbContext.get_all_tasks(user_id)
     if response:
         for item in response:
             send = await send_email(response['Email'], item)
             if send:
-                await dbContext.update_task(item['Id'], userId)
+                await dbContext.update_task(item['Id'], user_id)
