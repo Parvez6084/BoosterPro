@@ -1,38 +1,32 @@
+import os
 import pyodbc as odbc
 from datetime import datetime
+from dotenv import load_dotenv
+from db_queries import INSERT_URL_QUERY, GET_TASK_QUERY, INSERT_TASK_QUERY, UPDATE_TASK_QUERY, CHECK_QUERY, SUBSCRIPTION_QUERY, USER_QUERY
+load_dotenv()
 
 
 class DatabaseManager:
     def __init__(self):
-        # Define the connection string
-        self.DRIVER_NAME = "SQL Server"
-        self.SERVER_NAME = "L3T2167"
-        self.DATABASE_NAME = "BoosterPro"
-        self.uid = "sa"
-        self.pwd = "Admin0011##"
 
-        self.connecting_string = f"""
-            DRIVER={{{self.DRIVER_NAME}}};
-            SERVER={self.SERVER_NAME};
-            DATABASE={self.DATABASE_NAME};
-            Trusted_Connection=yes;
-            uid={self.uid};
-            pwd={self.pwd};
-            """
+        self.connecting_string = os.getenv("CONNECTION_STRING")
 
         # Define the query
-        self.insert_url_query = """UPDATE User_Information SET (URL) VALUE (?) WHERE UserId =?"""
-        self.get_task_query = """SELECT * FROM Task_Information WHERE UserId = ? AND IsSendEmail = 0"""
-        self.insert_task_query = """INSERT INTO Task_Information (UserId, Title, Summary, Published, Link) VALUES (?, ?, ?, ?, ?)"""
-        self.update_task_query = """UPDATE Task_Information SET IsSendEmail = 1 WHERE Id = ? AND UserId = ?"""
-        self.check_query = """SELECT * FROM Task_Information WHERE UserId = ? AND Title = ? AND Published = ? AND Link = ? """
-        self.subscription_query = """SELECT ui.IsSubscribed, si.SubscribedStartDate, ui.URL FROM User_Information as ui
-                INNER JOIN Subscribed_Information as si on ui.UserId = si.UserId WHERE UserId = ?"""
-        self.user_query = """SELECT * FROM User_Information WHERE UserId = ?"""
+        self.insert_url_query = INSERT_URL_QUERY
+        self.get_task_query = GET_TASK_QUERY
+        self.insert_task_query = INSERT_TASK_QUERY
+        self.update_task_query = UPDATE_TASK_QUERY
+        self.check_query = CHECK_QUERY
+        self.subscription_query = SUBSCRIPTION_QUERY
+        self.user_query = USER_QUERY
 
     # Define a method to get a connection
     def get_connection(self):
-        return odbc.connect(self.connecting_string)
+        try:
+            return odbc.connect(self.connecting_string)
+        except Exception as e:
+            print(f"An error occurred while connecting to the database: {e}")
+            raise e
 
     # Define a method to curd operation
     async def insert_url(self, user_id, url):
@@ -41,26 +35,28 @@ class DatabaseManager:
             cursor = conn.cursor()
             cursor.execute(self.insert_url_query, (url, user_id))
             conn.commit()
+            return True
         except Exception as e:
             print(f"An error occurred: {e}")
-            raise e
+            return False
         finally:
             if conn is not None:
                 conn.close()
 
-    async def insert_task(self, user_id, active_date, response):
+    async def insert_task(self, user_id, subscription_start_date, subscription_end_date, response):
         conn = self.get_connection()
         try:
             cursor = conn.cursor()
-            dt = datetime.strptime(response['published'], '%a, %d %b %Y %H:%M:%S %z')
-            published_date = dt.strftime('%Y-%m-%d %H:%M:%S')
+            date = datetime.strptime(response['published'], '%a, %d %b %Y %H:%M:%S %z')
+            formated_date = date.strftime('%Y-%m-%d %H:%M:%S')
+            published_date = datetime.fromisoformat(formated_date)
 
             # Check if the data already exists
             cursor.execute(self.check_query, (user_id, response['title'], published_date, response['link']))
             data = cursor.fetchone()
 
             # If the data does not exist, insert it
-            if published_date >= active_date:
+            if subscription_start_date < published_date < subscription_end_date:
                 if data is None:
                     cursor.execute(
                         self.insert_task_query, (
@@ -72,10 +68,10 @@ class DatabaseManager:
                         )
                     )
                     conn.commit()
-
+                    return True
         except Exception as e:
             print(f"An error occurred: {e}")
-            raise e
+            return False
         finally:
             if conn is not None:
                 conn.close()
@@ -102,6 +98,20 @@ class DatabaseManager:
             return data
         except Exception as e:
             print(f"An error occurred: {e}")
+            return None
+        finally:
+            if conn is not None:
+                conn.close()
+
+    async def get_all_tasks(self, user_id):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(self.get_task_query, user_id)
+            data = cursor.fetchall()
+            return data
+        except Exception as e:
+            print(f"An error occurred: {e}")
             raise e
         finally:
             if conn is not None:
@@ -113,20 +123,6 @@ class DatabaseManager:
             cursor = conn.cursor()
             cursor.execute(self.user_query, user_id)
             data = cursor.fetchone()
-            return data
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            raise e
-        finally:
-            if conn is not None:
-                conn.close()
-
-    async def get_all_tasks(self, user_id):
-        conn = self.get_connection()
-        try:
-            cursor = conn.cursor()
-            cursor.execute(self.get_task_query, user_id)
-            data = cursor.fetchall()
             return data
         except Exception as e:
             print(f"An error occurred: {e}")
