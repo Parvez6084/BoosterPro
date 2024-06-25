@@ -10,7 +10,6 @@ CHECK_QUERY = """SELECT * FROM Task_Information WHERE UserId = ? AND Title = ? A
 SUBSCRIPTION_QUERY = """SELECT ui.IsSubscribed, si.SubscriptionStartDate, si.SubscriptionEndDate, ui.URL 
                             FROM User_Information as ui
                              INNER JOIN Subscription_Information as si on ui.UserId = si.UserId WHERE ui.UserId = ?"""
-USER_QUERY = """SELECT * FROM User_Information WHERE UserId = ?"""
 
 
 # database.py

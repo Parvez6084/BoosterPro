@@ -27,45 +27,42 @@ async def set_task_worker(user_id: str):
         with DatabaseManager() as dbContext:
             result = await dbContext.get_subscription_info(user_id)
             is_subscribed = result[0]
+            subscription_start_date = result[1]
+            subscription_end_date = result[2]
             get_url = result[3]
 
-            if is_subscribed is True:
-                feed = feedparser.parse(get_url)
-                response = [
-                    {
-                        "title": entry.get('title', 'No title available'),
-                        "link": entry.get('link', 'No link available'),
-                        "summary": entry.get('summary', 'No summary available'),
-                        "published": entry.get('published', 'No publish date available'),
-                    }
-                    for entry in feed.entries
-                ] if feed.entries else []
+        if is_subscribed is True:
+            feed = feedparser.parse(get_url)
+            response = [
+                {
+                    "title": entry.get('title', 'No title available'),
+                    "link": entry.get('link', 'No link available'),
+                    "summary": entry.get('summary', 'No summary available'),
+                    "published": entry.get('published', 'No publish date available'),
+                }
+                for entry in feed.entries
+            ] if feed.entries else []
 
-                subscription_start_date = result[1]
-                subscription_end_date = result[2]
-
-                if subscription_start_date and subscription_end_date is not None:
-                    # Insert the task into the database
-                    if response:
-                        tasks = []
-                        for item in response:
-                            result = await dbContext.insert_task(
-                                user_id,
-                                subscription_start_date,
-                                subscription_end_date,
-                                item
-                            )
-                            if result is True:
-                                tasks.append(item)
-                        if tasks:
-                            await send_email_worker(user_id, tasks)
+            # Insert the task into the database
+            if subscription_start_date and subscription_end_date is not None:
+                if response:
+                    for item in response:
+                        result = await dbContext.insert_task(
+                            user_id,
+                            subscription_start_date,
+                            subscription_end_date,
+                            item
+                        )
+                    if result is True:
+                        await send_email_worker(user_id)
     except Exception as e:
         print(f"Error in set_task_worker: {str(e)}")
 
 
-async def send_email_worker(user_id: str, tasks):
+async def send_email_worker(user_id: str):
     try:
         with DatabaseManager() as dbContext:
+            tasks = await dbContext.get_all_tasks(user_id)
             for task in tasks:
                 task_model = TaskResponseModel(
                     id=task[0],

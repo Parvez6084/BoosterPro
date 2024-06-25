@@ -2,16 +2,14 @@ import pyodbc as odbc
 from datetime import datetime
 from database_credentials import (CONNECTION_STRING, INSERT_URL_QUERY, GET_TASK_QUERY,
                                   INSERT_TASK_QUERY, UPDATE_TASK_QUERY,
-                                  CHECK_QUERY, SUBSCRIPTION_QUERY, USER_QUERY)
+                                  CHECK_QUERY, SUBSCRIPTION_QUERY)
 
 
 class DatabaseManager:
     def __init__(self):
         self.connection = None
-
-    def __enter__(self):
-        self.connection = odbc.connect(CONNECTION_STRING)
-        return self
+        self.connection_string = CONNECTION_STRING
+        self.connection = odbc.connect(self.connection_string)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.connection:
