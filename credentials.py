@@ -12,7 +12,7 @@ SUBSCRIPTION_QUERY = """SELECT ui.IsSubscribed, si.SubscriptionStartDate, si.Sub
                              INNER JOIN Subscription_Information as si on ui.UserId = si.UserId WHERE ui.UserId = ?"""
 
 
-# database.py
+# db_config.py
 CONNECTION_STRING = (
     "DRIVER={SQL Server}; SERVER=L3T2167; DATABASE=BoosterPro; Trusted_Connection=yes; uid=sa; pwd=Admin0011##")
 

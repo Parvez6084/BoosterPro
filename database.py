@@ -1,8 +1,8 @@
 import pyodbc as odbc
 from datetime import datetime
-from database_credentials import (CONNECTION_STRING, INSERT_URL_QUERY, GET_TASK_QUERY,
-                                  INSERT_TASK_QUERY, UPDATE_TASK_QUERY,
-                                  CHECK_QUERY, SUBSCRIPTION_QUERY)
+from credentials import (CONNECTION_STRING, INSERT_URL_QUERY, GET_TASK_QUERY,
+                         INSERT_TASK_QUERY, UPDATE_TASK_QUERY,
+                         CHECK_QUERY, SUBSCRIPTION_QUERY)
 
 
 class DatabaseManager:

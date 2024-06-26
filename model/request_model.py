@@ -1,7 +1,8 @@
 from pydantic import BaseModel
 
 
-class TaskModel(BaseModel):
-    url: str
+class UserReqModel(BaseModel):
     userId: str
+    url: str
+
 
