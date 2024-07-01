@@ -2,7 +2,9 @@ from pydantic import BaseModel
 
 
 class UserReqModel(BaseModel):
-    userId: str
-    url: str
+    FullName: str
+    Email: str
+    Password: str
+
 
 

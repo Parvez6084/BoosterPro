@@ -8,6 +8,17 @@ from fastapi import Depends, FastAPI
 app = FastAPI()
 
 
+async def create_user(user: UserReqModel, db=Depends(DatabaseManager)):
+    try:
+        response = await db.insert_user(user.userId, user.fullName, user.email, user.password)
+        if response is True:
+            return {'status': 'User inserted successfully'}
+        else:
+            return {'status': 'failed'}
+    except Exception as e:
+        return {'status': 'failed', 'error': str(e)}
+
+
 @app.post("/api/url")
 async def set_url(user: UserReqModel, db=Depends(DatabaseManager)):
     try:
